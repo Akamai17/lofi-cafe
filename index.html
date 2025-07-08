@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>☕ Lo-Fi Café Spotify Companion</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
@@ -240,7 +240,6 @@
             <!-- Playlists -->
             <div class="blur-bg rounded-2xl p-5 flex-grow flex flex-col">
                 <h2 class="font-handwritten text-2xl text-dusty-pink mb-4">Your Playlists</h2>
-                <!-- FIX #1: Added classes for max-height and scrolling -->
                 <div id="playlistContainer" class="space-y-2 max-h-96 overflow-y-auto">
                     <div class="loading-spinner mx-auto"></div>
                 </div>
@@ -312,10 +311,15 @@
                             </button>
                         </div>
                         
-                        <!-- Volume Control -->
-                        <div class="mt-6 flex items-center">
-                            <i class="fas fa-volume-down text-dusty-pink mr-3"></i>
-                            <input type="range" id="volumeSlider" class="w-32" min="0" max="100" value="50">
+                        <!-- Volume & Device Control -->
+                        <div class="mt-6 flex items-center justify-between">
+                            <div class="flex items-center">
+                                <i class="fas fa-volume-down text-dusty-pink mr-3"></i>
+                                <input type="range" id="volumeSlider" class="w-32" min="0" max="100" value="50">
+                            </div>
+                            <button id="connectBtn" class="text-2xl text-dusty-pink hover:text-warm-brown transition-colors" title="Connect to a device">
+                                <i class="fas fa-computer"></i>
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -359,6 +363,19 @@
     <button id="popoutBtn" class="hidden fixed bottom-6 left-6 bg-dusty-pink text-white rounded-full w-12 h-12 flex items-center justify-center shadow-lg hover:bg-warm-brown transition-colors">
         <i class="fas fa-external-link-alt"></i>
     </button>
+
+    <!-- Device Selection Modal -->
+    <div id="devicesModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 transition-opacity">
+        <div class="bg-cream rounded-2xl shadow-xl p-6 w-full max-w-sm">
+            <h2 class="font-handwritten text-2xl text-muted-plum mb-4">Connect to a device</h2>
+            <div id="deviceList" class="space-y-3">
+                <!-- Device list will be populated here by JavaScript -->
+            </div>
+            <button id="closeDevicesModalBtn" class="mt-6 w-full bg-dusty-pink text-white py-2 rounded-lg hover:bg-warm-brown transition-colors">
+                Close
+            </button>
+        </div>
+    </div>
     
     <script>
         // =================================================================================
@@ -644,14 +661,70 @@
                                 <i class="fas fa-play"></i>
                             </button>
                         `;
-                        // FIX #2: Added the event listener to make the button work
                         trackEl.querySelector('.play-search-result').addEventListener('click', (e) => {
-                            e.stopPropagation(); // Prevents the whole div from triggering a click
+                            e.stopPropagation();
                             this.playItem(track.uri);
                         });
                         container.appendChild(trackEl);
                     });
                 } catch (error) { console.error('Error searching:', error); }
+            }
+
+            async showDeviceList() {
+                try {
+                    const devicesResponse = await this.makeSpotifyRequest('/me/player/devices');
+                    const deviceListEl = document.getElementById('deviceList');
+                    const modalEl = document.getElementById('devicesModal');
+                    
+                    deviceListEl.innerHTML = '';
+
+                    if (devicesResponse.devices.length === 0) {
+                        deviceListEl.innerHTML = '<p class="text-gray-600">No active devices found. Start playing music on another device to see it here.</p>';
+                    } else {
+                        devicesResponse.devices.forEach(device => {
+                            const deviceEl = document.createElement('div');
+                            deviceEl.className = 'flex items-center p-3 rounded-lg hover:bg-latte-tan cursor-pointer transition-colors';
+                            
+                            let icon = 'fa-computer';
+                            if (device.type.toLowerCase() === 'smartphone') icon = 'fa-mobile-screen-button';
+                            if (device.type.toLowerCase() === 'speaker') icon = 'fa-volume-high';
+
+                            deviceEl.innerHTML = `
+                                <i class="fas ${icon} text-muted-plum w-6 text-center"></i>
+                                <span class="ml-4 font-medium">${device.name}</span>
+                                ${device.is_active ? '<span class="ml-auto text-xs font-bold text-green-600">ACTIVE</span>' : ''}
+                            `;
+                            
+                            deviceEl.addEventListener('click', () => {
+                                this.transferPlayback(device.id);
+                            });
+                            
+                            deviceListEl.appendChild(deviceEl);
+                        });
+                    }
+                    
+                    modalEl.classList.remove('hidden');
+
+                } catch (error) {
+                    console.error('Error fetching devices:', error);
+                    alert('Could not fetch your devices. Please try again.');
+                }
+            }
+
+            async transferPlayback(deviceId) {
+                try {
+                    await this.makeSpotifyRequest('/me/player', {
+                        method: 'PUT',
+                        body: JSON.stringify({
+                            device_ids: [deviceId],
+                            play: true
+                        })
+                    });
+                    document.getElementById('devicesModal').classList.add('hidden');
+                } catch (error) {
+                    console.error('Error transferring playback:', error);
+                    alert('Could not transfer playback. Please ensure the device is active.');
+                }
             }
             
             async togglePlay() { if (this.player) await this.player.togglePlay(); }
@@ -684,6 +757,11 @@
                 });
                 document.getElementById('logoutBtn').addEventListener('click', () => this.logout());
                 document.getElementById('popoutBtn').addEventListener('click', () => this.openMiniplayer());
+
+                document.getElementById('connectBtn').addEventListener('click', () => this.showDeviceList());
+                document.getElementById('closeDevicesModalBtn').addEventListener('click', () => {
+                    document.getElementById('devicesModal').classList.add('hidden');
+                });
             }
             
             startProgressUpdater() {
