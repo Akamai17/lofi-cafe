@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Aura</title>
-    <!-- The favicon is now pointed to your local asset -->
     <link id="favicon" rel="icon" href="./assets/icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
@@ -30,7 +29,6 @@
         .blob-3 { width: 250px; height: 250px; bottom: -100px; left: 20vw; background: #d9cfc1; animation-delay: 10s; animation-duration: 35s; }
         @keyframes move { from { transform: translate(0, 0) scale(1); } to { transform: translate(30vw, -10vh) scale(1.6); } }
         
-        /* --- NEW: Retro Filter Style --- */
         body.retro-mode { filter: brightness(1.05) contrast(1.1) saturate(0.9); }
         body.retro-mode::after {
             content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
@@ -39,13 +37,18 @@
         }
 
         body.theme-night { color: #f5f1ec; }
+        /* --- UPDATED: Horizontal scrollbar fix + general card styling --- */
+        .blur-bg { 
+            backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); 
+            background-color: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.2);
+            overflow: hidden; /* This prevents children from causing horizontal scrollbars */
+        }
         body.theme-night .blur-bg { background-color: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.1); }
-        body.theme-night .blur-bg h2, body.theme-night .blur-bg h3#userName, body.theme-night .playlist-item p, body.theme-night #artistName, body.theme-night .search-result-item p, body.theme-night .ambiance-label { color: #f5f1ec; }
+        body.theme-night .blur-bg h2, body.theme-night .blur-bg h3#userName, body.theme-night .playlist-item p, body.theme-night #artistName, body.theme-night .search-result-item p, body.theme-night .ambiance-label, body.theme-night .contact-label { color: #f5f1ec; }
         body.theme-night .blur-bg .text-gray-600 { color: #d9cfc1; }
         body.theme-night .playlist-item:hover, body.theme-night .search-result-item:hover { background-color: rgba(245, 241, 236, 0.1); }
         body.theme-night .login-container p, body.theme-night .login-container h1 { color: #403d39; }
         button.active { color: #f0a6ca; text-shadow: 0 0 5px #f0a6ca; }
-        .blur-bg { backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); background-color: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.2); }
         .playlist-item, .search-result-item { transition: all 0.2s ease-in-out; }
         .playlist-item:hover, .search-result-item:hover { transform: translateX(5px); }
         .vinyl-container { position: relative; width: 224px; height: 224px; flex-shrink: 0; }
@@ -57,10 +60,10 @@
             box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; z-index: 1;
         }
         .playing .vinyl-record { animation-play-state: running; }
-        /* --- UPDATED: Vinyl hole is smaller --- */
+        /* --- UPDATED: Vinyl hole is now 20% --- */
         .vinyl-label {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 25%; height: 25%; background: #e6e6e6; border-radius: 50%;
+            width: 20%; height: 20%; background: #e6e6e6; border-radius: 50%;
             border: 1px solid #aaa; box-shadow: 0 0 5px rgba(0,0,0,0.5) inset;
             z-index: 2; pointer-events: none;
         }
@@ -68,12 +71,10 @@
         .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #f0a6ca; border-radius: 50%; animation: spin 1s linear infinite; }
         .login-container { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
         
-        /* --- UPDATED: All sliders now use the same pink style --- */
         input[type="range"]::-webkit-slider-runnable-track { background: #d9cfc1; height: 0.5rem; border-radius: 0.25rem; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -4px; background-color: #f0a6ca; height: 1.25rem; width: 1.25rem; border-radius: 50%; cursor: pointer; }
         body.theme-night input[type="range"]::-webkit-slider-runnable-track { background: #4a4e69; }
 
-        /* --- NEW: Aesthetic Scrollbars --- */
         #playlistContainer::-webkit-scrollbar, #searchResults::-webkit-scrollbar { width: 8px; }
         #playlistContainer::-webkit-scrollbar-track, #searchResults::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
         #playlistContainer::-webkit-scrollbar-thumb, #searchResults::-webkit-scrollbar-thumb { background: #f0a6ca; border-radius: 4px; }
@@ -88,36 +89,21 @@
         <div class="md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-6">
             <div class="md:col-span-1 space-y-6">
                 <div class="blur-bg rounded-2xl p-5">
-                    <div class="flex items-center">
-                        <img id="userAvatar" class="w-16 h-16 rounded-xl object-cover" src="" alt="User Avatar">
-                        <div class="ml-4">
-                            <h3 id="userName" class="font-semibold">Loading...</h3>
-                            <p id="userPlan" class="text-sm text-gray-600">Free</p>
-                        </div>
-                        <!-- --- NEW: Instagram Link --- -->
-                        <a href="https://instagram.com/yu.vanb" target="_blank" class="ml-auto text-2xl text-gray-400 hover:text-dusty-pink transition-colors" title="Instagram">
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                    </div>
+                    <div class="flex items-center"><img id="userAvatar" class="w-16 h-16 rounded-xl object-cover" src="" alt="User Avatar"><div class="ml-4"><h3 id="userName" class="font-semibold">Loading...</h3><p id="userPlan" class="text-sm text-gray-600">Free</p></div></div>
                     <div class="mt-4 pt-4 border-t border-latte-tan/50 flex items-center justify-between">
                         <button id="logoutBtn" class="text-sm text-dusty-pink"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
-                        <!-- --- NEW: Retro Mode Toggle --- -->
                         <button id="retroToggleBtn" class="text-2xl text-gray-400 hover:text-dusty-pink transition-colors" title="Toggle Retro Mode"><i class="fas fa-vhs"></i></button>
                     </div>
                 </div>
                 <div class="blur-bg rounded-2xl p-5"><h2 class="font-handwritten text-2xl text-dusty-pink mb-4">Your Playlists</h2><div id="playlistContainer" class="space-y-2 max-h-96 overflow-y-auto"></div></div>
                 <div class="blur-bg rounded-2xl p-5">
                     <h2 class="font-handwritten text-2xl text-dusty-pink mb-3">Ambiance Mixer</h2>
-                    <div class="mb-4">
-                        <!-- --- UPDATED: Label color is now styled --- -->
-                        <label for="ambientSelect1" class="ambiance-label text-sm font-medium text-gray-800">Channel 1</label>
-                        <select id="ambientSelect1" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select>
-                        <input type="range" id="ambientSlider1" min="0" max="1" step="0.01" value="0" class="w-full mt-2">
-                    </div>
-                    <div>
-                        <label for="ambientSelect2" class="ambiance-label text-sm font-medium text-gray-800">Channel 2</label>
-                        <select id="ambientSelect2" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select>
-                        <input type="range" id="ambientSlider2" min="0" max="1" step="0.01" value="0" class="w-full mt-2">
+                    <div class="mb-4"><label for="ambientSelect1" class="ambiance-label text-sm font-medium text-gray-800">Channel 1</label><select id="ambientSelect1" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select><input type="range" id="ambientSlider1" min="0" max="1" step="0.01" value="0" class="w-full mt-2"></div>
+                    <div><label for="ambientSelect2" class="ambiance-label text-sm font-medium text-gray-800">Channel 2</label><select id="ambientSelect2" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select><input type="range" id="ambientSlider2" min="0" max="1" step="0.01" value="0" class="w-full mt-2"></div>
+                    <!-- --- NEW: Contact info moved here --- -->
+                    <div class="mt-4 pt-4 border-t border-latte-tan/50 flex items-center text-sm">
+                        <span class="contact-label text-gray-800 mr-2">Contact Me:</span>
+                        <a href="https://instagram.com/yu.vanb" target="_blank" class="text-lg text-gray-400 hover:text-dusty-pink transition-colors" title="Instagram"><i class="fab fa-instagram"></i></a>
                     </div>
                 </div>
             </div>
@@ -128,7 +114,6 @@
                         <div class="vinyl-container"><div id="vinylRecord" class="vinyl-record"></div><div id="vinylLabel" class="vinyl-label"></div></div>
                         <div class="text-center md:text-left flex-grow w-full">
                             <div class="flex items-center justify-center md:justify-start mb-2">
-                                <!-- --- NEW: Explicit Tag Container --- -->
                                 <span id="explicitTag" class="hidden mr-2 bg-gray-500/50 text-white text-xs font-bold px-2 py-0.5 rounded-md">E</span>
                                 <h2 id="trackName" class="font-semibold text-2xl md:text-3xl">No track playing</h2>
                             </div>
@@ -192,7 +177,7 @@
             updatePlayerState(state) {
                 const vinylRecord = document.getElementById('vinylRecord'); const vinylLabel = document.getElementById('vinylLabel'); const vinylContainer = document.querySelector('.vinyl-container'); const explicitTag = document.getElementById('explicitTag');
                 if (!state || !state.track_window.current_track) {
-                    document.title = "Aura"; // Reset title
+                    document.title = "Aura";
                     document.getElementById('trackName').textContent = 'No track playing'; document.getElementById('artistName').textContent = 'Select a track to start';
                     vinylRecord.style.setProperty('--album-art-url', 'none'); vinylLabel.style.display = 'none'; vinylContainer.classList.remove('playing');
                     document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>'; explicitTag.classList.add('hidden');
@@ -200,7 +185,7 @@
                 }
                 this.isPlaying = !state.paused; this.isShuffling = state.shuffle; this.repeatState = ['off', 'context', 'track'][state.repeat_mode]; const track = state.track_window.current_track; this.currentTrack = track;
                 
-                document.title = `${track.name} - Aura`; // Set title to song name
+                document.title = `${track.name} - Aura`;
                 document.getElementById('trackName').textContent = track.name; document.getElementById('artistName').textContent = track.artists.map(a => a.name).join(', '); document.getElementById('totalTime').textContent = this.formatTime(track.duration_ms);
                 
                 if (track.explicit) { explicitTag.classList.remove('hidden'); } else { explicitTag.classList.add('hidden'); }
@@ -239,7 +224,6 @@
                 const searchAction = () => { const query = document.getElementById('searchInput').value; this.search(query); };
                 document.getElementById('searchBtn').addEventListener('click', searchAction); document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') searchAction(); });
                 document.getElementById('logoutBtn').addEventListener('click', () => this.logout()); document.getElementById('miniPlayerBtn').addEventListener('click', () => this.openMiniplayer());
-                // --- NEW: Event listener for retro toggle ---
                 document.getElementById('retroToggleBtn').addEventListener('click', () => document.body.classList.toggle('retro-mode'));
                 this.broadcastChannel.onmessage = (event) => { if (event.data.type === 'ACTION') this[event.data.payload](); if (event.data.type === 'REQUEST_INIT_STATE' && this.currentTrack) { this.updatePlayerState({ track_window: { current_track: this.currentTrack }, paused: !this.isPlaying, shuffle: this.isShuffling, repeat_mode: ['off', 'context', 'track'].indexOf(this.repeatState) }); }};
             }
@@ -251,7 +235,6 @@
             const spotifyPlayer = new SpotifyPlayer();
             document.getElementById('loginBtn').addEventListener('click', () => spotifyPlayer.login());
             
-            // --- UPDATED: New ambiance mixes added ---
             const ambientSounds = { 
                 none: { name: 'None', file: '' }, 
                 rain: { name: 'Gentle Rain', file: './assets/rain.mp3' }, 
