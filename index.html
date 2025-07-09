@@ -106,7 +106,7 @@
             </div>
         </div>
         
-        <!-- Main Content (FIX #2: Added overflow-y-auto and min-height: 0) -->
+        <!-- Main Content -->
         <div class="flex-grow flex flex-col overflow-y-auto" style="min-height: 0;">
             <!-- Now Playing Section -->
             <div class="blur-bg rounded-2xl p-6 mb-6 flex-shrink-0">
@@ -131,7 +131,6 @@
             <!-- Vibe Dashboard -->
             <div class="blur-bg rounded-2xl p-6 mb-6 flex-shrink-0">
                 <h2 class="font-handwritten text-2xl text-dusty-pink mb-4">Your Vibe Dashboard</h2>
-                <!-- FIX #1: Use grid layout to overlay spinner and chart -->
                 <div id="vibeChartContainer" class="relative grid place-items-center" style="height:300px">
                     <div class="loading-spinner row-start-1 col-start-1"></div>
                     <canvas id="vibeChart" class="row-start-1 col-start-1"></canvas>
@@ -154,51 +153,42 @@
         // =================================================================================
         const CLIENT_ID = '1d19feb1d43040d7bb13ddea90fc6468';
         const REDIRECT_URI = 'https://akamai17.github.io/lofi-cafe/';
-        const WEATHER_API_KEY = 'YOUR_WEATHERAPI_COM_KEY_HERE';
+        const WEATHER_API_KEY = 'e4cf7e3f782e4d81b6b02628250907';
         // =================================================================================
         
         const SCOPES = ['user-read-private','user-read-email','user-read-playback-state','user-modify-playback-state','user-read-currently-playing','streaming','playlist-read-private','playlist-read-collaborative','user-top-read','user-read-recently-played'].join(' ');
         async function generateCodeChallenge(codeVerifier) { const data = new TextEncoder().encode(codeVerifier); const digest = await window.crypto.subtle.digest('SHA-256', data); return btoa(String.fromCharCode.apply(null, [...new Uint8Array(digest)])).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
         
         class SpotifyPlayer {
-            constructor() { this.accessToken = null; this.player = null; this.deviceId = null; this.currentTrack = null; this.isPlaying = false; this.init(); }
+            constructor() { this.accessToken = null; this.player = null; this.deviceId = null; this.currentTrack = null; this.isPlaying = false; this.vibeChart = null; this.vibeData = null; this.init(); }
             async init() { const params = new URLSearchParams(window.location.search); const code = params.get('code'); if (code) { document.getElementById('loginContent').classList.add('hidden'); document.getElementById('loadingContent').classList.remove('hidden'); document.getElementById('loginScreen').classList.remove('hidden'); await this.getAccessToken(code); window.history.replaceState({}, document.title, window.location.pathname); await this.initializeApp(); } else { const storedToken = sessionStorage.getItem('spotify_token'); if (storedToken) { this.accessToken = storedToken; await this.initializeApp(); } else { this.showLoginScreen(); } } }
             async getAccessToken(code) { const codeVerifier = sessionStorage.getItem('spotify_code_verifier'); if (!codeVerifier) { this.logout(); return; } try { const response = await fetch('https://accounts.spotify.com/api/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ client_id: CLIENT_ID, grant_type: 'authorization_code', code: code, redirect_uri: REDIRECT_URI, code_verifier: codeVerifier }), }); if (!response.ok) throw new Error('Failed to fetch access token'); const data = await response.json(); this.accessToken = data.access_token; sessionStorage.setItem('spotify_token', this.accessToken); } catch (error) { console.error('Error getting access token:', error); this.logout(); } }
             async login() { const codeVerifier = btoa(window.crypto.getRandomValues(new Uint8Array(32)).toString()).substring(0, 128); sessionStorage.setItem('spotify_code_verifier', codeVerifier); const codeChallenge = await generateCodeChallenge(codeVerifier); const authUrl = new URL('https://accounts.spotify.com/authorize'); authUrl.search = new URLSearchParams({ client_id: CLIENT_ID, response_type: 'code', redirect_uri: REDIRECT_URI, scope: SCOPES, code_challenge_method: 'S256', code_challenge: codeChallenge }).toString(); window.location.href = authUrl.toString(); }
             logout() { sessionStorage.removeItem('spotify_token'); sessionStorage.removeItem('spotify_code_verifier'); this.accessToken = null; if (this.player) this.player.disconnect(); window.location.href = window.location.origin + window.location.pathname; }
             showLoginScreen() { document.getElementById('loginScreen').classList.remove('hidden'); document.getElementById('mainApp').classList.add('hidden'); document.getElementById('popoutBtn').classList.add('hidden'); }
             
+            // --- INITIALIZE APP (RESILIENT VERSION) ---
             async initializeApp() {
                 document.getElementById('loginScreen').classList.add('hidden'); document.getElementById('mainApp').classList.remove('hidden'); document.getElementById('mainApp').classList.add('flex'); document.getElementById('popoutBtn').classList.remove('hidden');
-                try {
-                    await this.loadUserProfile(); await this.loadPlaylists(); await this.initializeWebPlayback(); this.setupEventListeners(); this.startProgressUpdater(); this.loadVibeDashboard(); this.loadDynamicWeather();
-                } catch (error) { console.error('Error initializing app:', error); if (error.message.includes('401')) { alert('Session expired.'); this.logout(); } else { alert('Connection failed.'); this.logout(); } }
+                
+                this.setupEventListeners();
+                this.startProgressUpdater();
+
+                // Call all loading functions. They will handle their own errors.
+                this.loadUserProfile();
+                this.loadPlaylists();
+                this.initializeWebPlayback();
+                this.fetchVibeData();
+                this.loadDynamicWeather();
             }
             
-            async makeSpotifyRequest(endpoint, options = {}) { const response = await fetch(`https://api.spotify.com/v1${endpoint}`, { ...options, headers: { 'Authorization': `Bearer ${this.accessToken}`, 'Content-Type': 'application/json', ...options.headers } }); if (!response.ok) throw new Error(`Spotify API error: ${response.status}`); const text = await response.text(); return text ? JSON.parse(text) : {}; }
+            async makeSpotifyRequest(endpoint, options = {}) { const response = await fetch(`https://api.spotify.com/v1${endpoint}`, { ...options, headers: { 'Authorization': `Bearer ${this.accessToken}`, 'Content-Type': 'application/json', ...options.headers } }); if (!response.ok) { if(response.status === 401) this.logout(); throw new Error(`Spotify API error: ${response.status}`); } const text = await response.text(); return text ? JSON.parse(text) : {}; }
             
-            async loadUserProfile() {
-                try {
-                    const profile = await this.makeSpotifyRequest('/me');
-                    document.getElementById('userName').textContent = profile.display_name || 'Spotify User';
-                    document.getElementById('userPlan').textContent = profile.product || 'Free';
-                    if (profile.images && profile.images.length > 0) {
-                        document.getElementById('userAvatar').src = profile.images[0].url;
-                    }
-                } catch (error) { console.error('Error loading user profile:', error); }
-            }
-            
-            async loadPlaylists() { try { const playlists = await this.makeSpotifyRequest('/me/playlists?limit=50'); const container = document.getElementById('playlistContainer'); container.innerHTML = ''; playlists.items.forEach(playlist => { const el = document.createElement('div'); el.className = 'playlist-item cursor-pointer p-3 rounded-xl transition-all'; el.innerHTML = `<p class="font-medium truncate">${playlist.name}</p><p class="text-sm text-gray-600">${playlist.tracks.total} songs</p>`; el.addEventListener('click', () => this.playItem(playlist.uri)); container.appendChild(el); }); } catch (error) { console.error('Error loading playlists:', error); } }
+            async loadUserProfile() { try { const profile = await this.makeSpotifyRequest('/me'); document.getElementById('userName').textContent = profile.display_name || 'Spotify User'; document.getElementById('userPlan').textContent = profile.product || 'Free'; if (profile.images && profile.images.length > 0) { document.getElementById('userAvatar').src = profile.images[0].url; } } catch (error) { console.error('Error loading user profile:', error); } }
+            async loadPlaylists() { try { const playlists = await this.makeSpotifyRequest('/me/playlists?limit=50'); const container = document.getElementById('playlistContainer'); container.innerHTML = ''; playlists.items.forEach(playlist => { const el = document.createElement('div'); el.className = 'playlist-item cursor-pointer p-3 rounded-xl transition-all'; el.innerHTML = `<p class="font-medium truncate">${playlist.name}</p><p class="text-sm text-gray-600">${playlist.tracks.total} songs</p>`; el.addEventListener('click', () => this.playItem(playlist.uri)); container.appendChild(el); }); } catch (error) { console.error('Error loading playlists:', error); document.getElementById('playlistContainer').innerHTML = `<p class="text-red-500 text-sm">Could not load playlists.</p>`; } }
             async playItem(uri) { if (!this.deviceId) { alert('Player not ready.'); return; } try { const body = uri.includes(':playlist:') || uri.includes(':album:') ? { context_uri: uri } : { uris: [uri] }; await this.makeSpotifyRequest(`/me/player/play?device_id=${this.deviceId}`, { method: 'PUT', body: JSON.stringify(body) }); } catch (error) { console.error('Error playing item:', error); } }
             
-            async initializeWebPlayback() {
-                await new Promise(resolve => { if (window.Spotify) resolve(); else { const script = document.createElement('script'); script.src = 'https://sdk.scdn.co/spotify-player.js'; script.async = true; document.head.appendChild(script); window.onSpotifyWebPlaybackSDKReady = resolve; } });
-                this.player = new Spotify.Player({ name: 'Lo-Fi Café Player', getOAuthToken: cb => { cb(this.accessToken); }, volume: 0.5 });
-                this.player.addListener('ready', ({ device_id }) => { this.deviceId = device_id; });
-                this.player.addListener('not_ready', ({ device_id }) => console.log('Device offline', device_id));
-                this.player.addListener('player_state_changed', (state) => { if (state) this.updatePlayerState(state); });
-                await this.player.connect();
-            }
+            async initializeWebPlayback() { try { await new Promise(resolve => { if (window.Spotify) resolve(); else { const script = document.createElement('script'); script.src = 'https://sdk.scdn.co/spotify-player.js'; script.async = true; document.head.appendChild(script); window.onSpotifyWebPlaybackSDKReady = resolve; } }); this.player = new Spotify.Player({ name: 'Lo-Fi Café Player', getOAuthToken: cb => { cb(this.accessToken); }, volume: 0.5 }); this.player.addListener('ready', ({ device_id }) => { this.deviceId = device_id; }); this.player.addListener('not_ready', ({ device_id }) => console.log('Device offline', device_id)); this.player.addListener('player_state_changed', (state) => { if (state) this.updatePlayerState(state); }); await this.player.connect(); } catch (error) { console.error('Could not initialize Web Playback SDK', error);}}
             
             updatePlayerState(state) {
                 if (!state) { this.isPlaying = false; document.getElementById('trackName').textContent = 'No track playing'; document.getElementById('artistName').textContent = 'Select a track to start'; document.getElementById('albumArt').src = ''; document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>'; document.querySelector('.vinyl').classList.remove('playing'); return; }
@@ -211,17 +201,10 @@
             async showDeviceList() { try { const res = await this.makeSpotifyRequest('/me/player/devices'); const listEl = document.getElementById('deviceList'); const modalEl = document.getElementById('devicesModal'); listEl.innerHTML = ''; if (res.devices.length === 0) { listEl.innerHTML = '<p>No active devices found.</p>'; } else { res.devices.forEach(device => { const el = document.createElement('div'); el.className = 'flex items-center p-3 rounded-lg hover:bg-latte-tan cursor-pointer'; let icon = 'fa-computer'; if (device.type.toLowerCase() === 'smartphone') icon = 'fa-mobile-screen-button'; if (device.type.toLowerCase() === 'speaker') icon = 'fa-volume-high'; el.innerHTML = `<i class="fas ${icon} text-muted-plum w-6 text-center"></i><span class="ml-4 font-medium">${device.name}</span>${device.is_active ? '<span class="ml-auto text-xs font-bold text-green-600">ACTIVE</span>' : ''}`; el.addEventListener('click', () => this.transferPlayback(device.id)); listEl.appendChild(el); }); } modalEl.classList.remove('hidden'); } catch (error) { console.error('Error fetching devices:', error); } }
             async transferPlayback(deviceId) { try { await this.makeSpotifyRequest('/me/player', { method: 'PUT', body: JSON.stringify({ device_ids: [deviceId], play: true }) }); document.getElementById('devicesModal').classList.add('hidden'); } catch (error) { console.error('Error transferring playback:', error); } }
 
-            async loadVibeDashboard() {
+            async fetchVibeData() {
                 try {
                     const topTracks = await this.makeSpotifyRequest('/me/top/tracks?limit=50&time_range=short_term');
-                    const spinner = document.querySelector('#vibeChartContainer .loading-spinner');
-                    const container = document.getElementById('vibeChartContainer');
-
-                    if (topTracks.items.length === 0) {
-                        if(spinner) spinner.style.display = 'none';
-                        container.innerHTML += '<p class="text-center">Not enough listening data.</p>'; return;
-                    }
-
+                    if (topTracks.items.length === 0) { this.vibeData = null; this.renderVibeChart(); return; }
                     const trackIds = topTracks.items.map(track => track.id);
                     const audioFeatures = await this.makeSpotifyRequest(`/audio-features?ids=${trackIds.join(',')}`);
                     const avgFeatures = { danceability: 0, energy: 0, acousticness: 0, instrumentalness: 0, valence: 0 };
@@ -229,37 +212,47 @@
                     let validFeaturesCount = 0;
                     audioFeatures.audio_features.forEach(feature => { if (feature) { validFeaturesCount++; featureKeys.forEach(key => avgFeatures[key] += feature[key]); } });
                     featureKeys.forEach(key => avgFeatures[key] /= validFeaturesCount);
-                    
-                    const ctx = document.getElementById('vibeChart').getContext('2d');
-                    if(spinner) spinner.style.display = 'none';
-                    
-                    const isNightMode = document.body.classList.contains('theme-night');
-                    const chartTextColor = isNightMode ? '#f5f1ec' : '#403d39';
-                    const gridColor = isNightMode ? 'rgba(245, 241, 236, 0.2)' : 'rgba(64, 61, 57, 0.2)';
+                    this.vibeData = avgFeatures;
+                    this.renderVibeChart();
+                } catch (error) { console.error('Error fetching vibe dashboard:', error); document.getElementById('vibeChartContainer').innerHTML = '<p class="text-center text-red-500">Could not load vibe data.</p>'; }
+            }
 
-                    new Chart(ctx, { type: 'radar', data: { labels: ['Danceability', 'Energy', 'Acoustic', 'Instrumental', 'Positivity'], datasets: [{ label: 'Your Current Vibe', data: Object.values(avgFeatures), fill: true, backgroundColor: 'rgba(240, 166, 202, 0.2)', borderColor: 'rgb(240, 166, 202)', pointBackgroundColor: 'rgb(240, 166, 202)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(240, 166, 202)' }] },
-                        options: {
-                            maintainAspectRatio: false,
-                            scales: { r: { angleLines: { color: gridColor }, grid: { color: gridColor }, pointLabels: { font: { size: 12 }, color: chartTextColor }, suggestedMin: 0, suggestedMax: 1 } },
-                            plugins: { legend: { display: false } }
-                        }
-                    });
-                } catch (error) { console.error('Error loading vibe dashboard:', error); }
+            renderVibeChart() {
+                const container = document.getElementById('vibeChartContainer');
+                const spinner = container.querySelector('.loading-spinner');
+                if (spinner) spinner.style.display = 'none';
+                if (this.vibeChart) { this.vibeChart.destroy(); }
+                if (!this.vibeData) { container.innerHTML = '<p class="text-center">Not enough listening data.</p>'; return; }
+                
+                const ctx = document.getElementById('vibeChart').getContext('2d');
+                const isNightMode = document.body.classList.contains('theme-night');
+                const chartTextColor = isNightMode ? '#f5f1ec' : '#403d39';
+                const gridColor = isNightMode ? 'rgba(245, 241, 236, 0.2)' : 'rgba(64, 61, 57, 0.2)';
+
+                this.vibeChart = new Chart(ctx, { type: 'radar', data: { labels: ['Danceability', 'Energy', 'Acoustic', 'Instrumental', 'Positivity'], datasets: [{ label: 'Your Current Vibe', data: Object.values(this.vibeData), fill: true, backgroundColor: 'rgba(240, 166, 202, 0.2)', borderColor: 'rgb(240, 166, 202)', pointBackgroundColor: 'rgb(240, 166, 202)', pointBorderColor: '#fff', pointHoverBackgroundColor: '#fff', pointHoverBorderColor: 'rgb(240, 166, 202)' }] },
+                    options: { maintainAspectRatio: false, scales: { r: { angleLines: { color: gridColor }, grid: { color: gridColor }, pointLabels: { font: { size: 12 }, color: chartTextColor }, suggestedMin: 0, suggestedMax: 1 } }, plugins: { legend: { display: false } } }
+                });
             }
             
             async loadDynamicWeather() {
-                if (WEATHER_API_KEY === 'YOUR_WEATHERAPI_COM_KEY_HERE') { console.warn("WeatherAPI.com key not set."); return; }
-                navigator.geolocation.getCurrentPosition(async (position) => {
-                    const { latitude, longitude } = position.coords;
-                    try {
+                try {
+                    if (WEATHER_API_KEY === 'YOUR_WEATHERAPI_COM_KEY_HERE') { console.warn("WeatherAPI.com key not set."); return; }
+                    navigator.geolocation.getCurrentPosition(async (position) => {
+                        const { latitude, longitude } = position.coords;
                         const res = await fetch(`https://api.weatherapi.com/v1/current.json?key=${WEATHER_API_KEY}&q=${latitude},${longitude}`);
-                        if (!res.ok) throw new Error('Weather fetch failed');
+                        if (!res.ok) return;
                         const weatherData = await res.json();
-                        if (weatherData.current.is_day === 0) { document.body.classList.add('theme-night'); }
+                        if (weatherData.current.is_day === 0) document.body.classList.add('theme-night');
                         const conditionText = weatherData.current.condition.text.toLowerCase();
-                        if (conditionText.includes('rain') || conditionText.includes('drizzle') || conditionText.includes('thunder')) { document.body.classList.add('weather-rain'); }
-                    } catch(e) { console.error("Could not fetch weather data.", e)}
-                }, (error) => console.error("Geolocation permission denied.", error));
+                        if (conditionText.includes('rain') || conditionText.includes('drizzle') || conditionText.includes('thunder')) document.body.classList.add('weather-rain');
+                        this.renderVibeChart(); // Re-render chart with correct theme colors
+                    }, (error) => {
+                        console.error("Geolocation permission denied.", error);
+                        const hour = new Date().getHours();
+                        if (hour < 6 || hour > 19) document.body.classList.add('theme-night');
+                        this.renderVibeChart(); // Re-render chart anyway
+                    });
+                } catch (e) { console.error("Could not fetch weather data.", e); }
             }
             
             async togglePlay() { if (this.player) await this.player.togglePlay(); }
@@ -283,8 +276,7 @@
             createRain();
             const spotifyPlayer = new SpotifyPlayer();
             document.getElementById('loginBtn').addEventListener('click', () => { if (CLIENT_ID === 'YOUR_SPOTIFY_CLIENT_ID' || !CLIENT_ID) { alert('Spotify Client ID not set!'); return; } document.getElementById('loginContent').classList.add('hidden'); document.getElementById('loadingContent').classList.remove('hidden'); spotifyPlayer.login(); });
-
-            const ambientSounds = { none: { name: 'None', file: '' }, rain: { name: 'Gentle Rain', file: './assets/rain.mp3' }, cafe: { name: 'Coffee Shop', file: './assets/cafe.mp3' }, fire: { name: 'Fireplace', file: './assets/fire.mp3' }, forest: { name: 'Forest Night', file: './assets/forest.mp3' } };
+            const ambientSounds = { none: { name: 'None', file: '' }, rain: { name: 'Gentle Rain', file: './assets/rain.mp3' }, cafe: { name: 'Coffee Shop', file: './assets/cafe.mp3' }, fire: { name: 'Inazuma', file: './assets/inazuma.mp3' }};
             const select1 = document.getElementById('ambientSelect1'); const slider1 = document.getElementById('ambientSlider1'); const audio1 = document.getElementById('ambientAudio1');
             const select2 = document.getElementById('ambientSelect2'); const slider2 = document.getElementById('ambientSlider2'); const audio2 = document.getElementById('ambientAudio2');
             function populateSelect(selectElement) { for (const key in ambientSounds) { const option = document.createElement('option'); option.value = key; option.textContent = ambientSounds[key].name; selectElement.appendChild(option); } }
