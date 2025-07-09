@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>☕ Lo-Fi Café Spotify Companion</title>
+    <title>Aura</title>
+    <!-- The favicon is now pointed to your local asset -->
+    <link id="favicon" rel="icon" href="./assets/icon.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@400;700&family=DM+Sans:wght@300;400;500;600&family=Quicksand:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -11,48 +13,34 @@
         tailwind.config = {
             theme: {
                 extend: {
-                    colors: {
-                        'cream': '#f5f1ec',
-                        'latte-tan': '#d9cfc1',
-                        'sage-green': '#c7d2c2',
-                        'muted-plum': '#4a4e69',
-                        'brown-gray': '#403d39',
-                        'dusty-pink': '#f0a6ca'
-                    },
-                    fontFamily: {
-                        'handwritten': ['Dancing Script', 'cursive'],
-                        'sans': ['Open Sans', 'sans-serif']
-                    }
+                    colors: { 'cream': '#f5f1ec', 'latte-tan': '#d9cfc1', 'sage-green': '#c7d2c2', 'muted-plum': '#4a4e69', 'brown-gray': '#403d39', 'dusty-pink': '#f0a6ca' },
+                    fontFamily: { 'handwritten': ['Dancing Script', 'cursive'], 'sans': ['Open Sans', 'sans-serif'] }
                 }
             }
         }
     </script>
     <style>
-        html, body {
-            height: 100%;
-        }
-        body {
-            background-color: #4a4e69;
-            font-family: 'DM Sans', sans-serif;
-            color: #403d39;
-            overflow-x: hidden;
-        }
+        html, body { height: 100%; }
+        body { background-color: #4a4e69; font-family: 'DM Sans', sans-serif; color: #403d39; overflow-x: hidden; }
         .bg-container { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-image: linear-gradient(to bottom right, #f5f1ec, #d9cfc1, #c7d2c2); transition: background-image 1s ease; z-index: -2; }
         body.theme-night .bg-container { background-image: linear-gradient(to bottom right, #4a4e69, #403d39, #2c2b28); }
         .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: 0.3; z-index: -1; animation: move 25s infinite alternate; }
         .blob-1 { width: 400px; height: 400px; top: -150px; left: -150px; background: #f0a6ca; }
         .blob-2 { width: 300px; height: 300px; top: 10vh; right: 5vw; background: #c7d2c2; animation-delay: 5s; animation-duration: 30s; }
         .blob-3 { width: 250px; height: 250px; bottom: -100px; left: 20vw; background: #d9cfc1; animation-delay: 10s; animation-duration: 35s; }
+        @keyframes move { from { transform: translate(0, 0) scale(1); } to { transform: translate(30vw, -10vh) scale(1.6); } }
         
-        /* --- ENHANCED ANIMATION --- */
-        @keyframes move { 
-            from { transform: translate(0, 0) scale(1); } 
-            to { transform: translate(30vw, -10vh) scale(1.6); } 
+        /* --- NEW: Retro Filter Style --- */
+        body.retro-mode { filter: brightness(1.05) contrast(1.1) saturate(0.9); }
+        body.retro-mode::after {
+            content: ''; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-image: repeating-linear-gradient(0deg, rgba(0,0,0,0.15) 0px, rgba(0,0,0,0.15) 1px, transparent 1px, transparent 2px);
+            z-index: 9999; pointer-events: none; opacity: 0.5;
         }
-        
+
         body.theme-night { color: #f5f1ec; }
         body.theme-night .blur-bg { background-color: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.1); }
-        body.theme-night .blur-bg h2, body.theme-night .blur-bg h3#userName, body.theme-night .playlist-item p, body.theme-night #artistName, body.theme-night .search-result-item p { color: #f5f1ec; }
+        body.theme-night .blur-bg h2, body.theme-night .blur-bg h3#userName, body.theme-night .playlist-item p, body.theme-night #artistName, body.theme-night .search-result-item p, body.theme-night .ambiance-label { color: #f5f1ec; }
         body.theme-night .blur-bg .text-gray-600 { color: #d9cfc1; }
         body.theme-night .playlist-item:hover, body.theme-night .search-result-item:hover { background-color: rgba(245, 241, 236, 0.1); }
         body.theme-night .login-container p, body.theme-night .login-container h1 { color: #403d39; }
@@ -60,52 +48,97 @@
         .blur-bg { backdrop-filter: blur(16px) saturate(180%); -webkit-backdrop-filter: blur(16px) saturate(180%); background-color: rgba(255, 255, 255, 0.35); border: 1px solid rgba(255, 255, 255, 0.2); }
         .playlist-item, .search-result-item { transition: all 0.2s ease-in-out; }
         .playlist-item:hover, .search-result-item:hover { transform: translateX(5px); }
-        
         .vinyl-container { position: relative; width: 224px; height: 224px; flex-shrink: 0; }
         .vinyl-record {
-            width: 100%; height: 100%; border-radius: 50%;
-            background-color: #222;
+            width: 100%; height: 100%; border-radius: 50%; background-color: #222;
             background-image: repeating-radial-gradient(circle at center, rgba(255,255,255,0.03) 0px, rgba(255,255,255,0.03) 2px, transparent 2px, transparent 4px), var(--album-art-url, none);
             background-size: auto, cover; background-position: center; background-repeat: repeat, no-repeat;
             animation: spin 20s linear infinite; animation-play-state: paused;
             box-shadow: 0 0 20px rgba(0,0,0,0.5); position: relative; z-index: 1;
         }
         .playing .vinyl-record { animation-play-state: running; }
+        /* --- UPDATED: Vinyl hole is smaller --- */
         .vinyl-label {
             position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-            width: 33%; height: 33%; background: #e6e6e6; border-radius: 50%;
+            width: 25%; height: 25%; background: #e6e6e6; border-radius: 50%;
             border: 1px solid #aaa; box-shadow: 0 0 5px rgba(0,0,0,0.5) inset;
             z-index: 2; pointer-events: none;
         }
         @keyframes spin { 100% { transform: rotate(360deg); } }
-
         .loading-spinner { width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid #f0a6ca; border-radius: 50%; animation: spin 1s linear infinite; }
         .login-container { background: rgba(255, 255, 255, 0.9); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; text-align: center; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
+        
+        /* --- UPDATED: All sliders now use the same pink style --- */
         input[type="range"]::-webkit-slider-runnable-track { background: #d9cfc1; height: 0.5rem; border-radius: 0.25rem; }
-        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -4px; background-color: #f0a6ca; height: 1.25rem; width: 1.25rem; border-radius: 50%; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; margin-top: -4px; background-color: #f0a6ca; height: 1.25rem; width: 1.25rem; border-radius: 50%; cursor: pointer; }
         body.theme-night input[type="range"]::-webkit-slider-runnable-track { background: #4a4e69; }
+
+        /* --- NEW: Aesthetic Scrollbars --- */
+        #playlistContainer::-webkit-scrollbar, #searchResults::-webkit-scrollbar { width: 8px; }
+        #playlistContainer::-webkit-scrollbar-track, #searchResults::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
+        #playlistContainer::-webkit-scrollbar-thumb, #searchResults::-webkit-scrollbar-thumb { background: #f0a6ca; border-radius: 4px; }
+        #playlistContainer::-webkit-scrollbar-thumb:hover, #searchResults::-webkit-scrollbar-thumb:hover { background: #e096ba; }
     </style>
 </head>
 <body class="min-h-screen">
-    <!-- Animated BG container & Login Screen -->
     <div class="bg-container"><div class="blob blob-1"></div><div class="blob blob-2"></div><div class="blob blob-3"></div></div>
-    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center z-50"> <div class="login-container max-w-md w-full mx-4"> <div class="mb-6"><i class="fas fa-music text-6xl text-dusty-pink mb-4"></i><h1 class="font-handwritten text-4xl text-muted-plum mb-2">Lo-Fi Spotify Player</h1><p class="text-gray-600">Connect to Spotify to start your musical journey</p></div><div id="loginContent"><button id="loginBtn" class="spotify-btn"><i class="fab fa-spotify text-xl"></i>Connect with Spotify</button></div><div id="loadingContent" class="hidden"><div class="loading-spinner mx-auto mb-4"></div><p class="text-gray-600">Connecting to Spotify...</p></div></div></div>
+    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center z-50"> <div class="login-container max-w-md w-full mx-4"> <div class="mb-6"><i class="fas fa-music text-6xl text-dusty-pink mb-4"></i><h1 class="font-handwritten text-4xl text-muted-plum mb-2">Aura Player</h1><p class="text-gray-600">Connect to Spotify to start your musical journey</p></div><div id="loginContent"><button id="loginBtn" class="spotify-btn"><i class="fab fa-spotify text-xl"></i>Connect with Spotify</button></div><div id="loadingContent" class="hidden"><div class="loading-spinner mx-auto mb-4"></div><p class="text-gray-600">Connecting to Spotify...</p></div></div></div>
     
-    <!-- Main App Container -->
     <div id="mainApp" class="hidden max-w-7xl mx-auto w-full p-4 md:p-6">
         <div class="md:grid md:grid-cols-3 lg:grid-cols-4 md:gap-6">
             <div class="md:col-span-1 space-y-6">
-                <div class="blur-bg rounded-2xl p-5"><div class="flex items-center"><img id="userAvatar" class="w-16 h-16 rounded-xl object-cover" src="" alt="User Avatar"><div class="ml-4"><h3 id="userName" class="font-semibold">Loading...</h3><p id="userPlan" class="text-sm text-gray-600">Free</p></div></div><button id="logoutBtn" class="mt-4 text-sm text-dusty-pink"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button></div>
-                <div class="blur-bg rounded-2xl p-5"><h2 class="font-handwritten text-2xl text-dusty-pink mb-4">Your Playlists</h2><div id="playlistContainer" class="space-y-2 max-h-96 overflow-y-auto"><div class="loading-spinner mx-auto"></div></div></div>
-                <div class="blur-bg rounded-2xl p-5"><h2 class="font-handwritten text-2xl text-dusty-pink mb-3">Ambiance Mixer</h2><div class="mb-4"><label for="ambientSelect1" class="text-sm font-medium text-gray-800">Channel 1</label><select id="ambientSelect1" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select><input type="range" id="ambientSlider1" min="0" max="1" step="0.01" value="0" class="w-full mt-2"></div><div><label for="ambientSelect2" class="text-sm font-medium text-gray-800">Channel 2</label><select id="ambientSelect2" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select><input type="range" id="ambientSlider2" min="0" max="1" step="0.01" value="0" class="w-full mt-2"></div></div>
+                <div class="blur-bg rounded-2xl p-5">
+                    <div class="flex items-center">
+                        <img id="userAvatar" class="w-16 h-16 rounded-xl object-cover" src="" alt="User Avatar">
+                        <div class="ml-4">
+                            <h3 id="userName" class="font-semibold">Loading...</h3>
+                            <p id="userPlan" class="text-sm text-gray-600">Free</p>
+                        </div>
+                        <!-- --- NEW: Instagram Link --- -->
+                        <a href="https://instagram.com/yu.vanb" target="_blank" class="ml-auto text-2xl text-gray-400 hover:text-dusty-pink transition-colors" title="Instagram">
+                            <i class="fab fa-instagram"></i>
+                        </a>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-latte-tan/50 flex items-center justify-between">
+                        <button id="logoutBtn" class="text-sm text-dusty-pink"><i class="fas fa-sign-out-alt mr-2"></i>Logout</button>
+                        <!-- --- NEW: Retro Mode Toggle --- -->
+                        <button id="retroToggleBtn" class="text-2xl text-gray-400 hover:text-dusty-pink transition-colors" title="Toggle Retro Mode"><i class="fas fa-vhs"></i></button>
+                    </div>
+                </div>
+                <div class="blur-bg rounded-2xl p-5"><h2 class="font-handwritten text-2xl text-dusty-pink mb-4">Your Playlists</h2><div id="playlistContainer" class="space-y-2 max-h-96 overflow-y-auto"></div></div>
+                <div class="blur-bg rounded-2xl p-5">
+                    <h2 class="font-handwritten text-2xl text-dusty-pink mb-3">Ambiance Mixer</h2>
+                    <div class="mb-4">
+                        <!-- --- UPDATED: Label color is now styled --- -->
+                        <label for="ambientSelect1" class="ambiance-label text-sm font-medium text-gray-800">Channel 1</label>
+                        <select id="ambientSelect1" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select>
+                        <input type="range" id="ambientSlider1" min="0" max="1" step="0.01" value="0" class="w-full mt-2">
+                    </div>
+                    <div>
+                        <label for="ambientSelect2" class="ambiance-label text-sm font-medium text-gray-800">Channel 2</label>
+                        <select id="ambientSelect2" class="w-full mt-1 p-2 rounded-lg bg-cream border border-latte-tan text-sm focus:outline-none focus:ring-2 focus:ring-dusty-pink text-gray-800"></select>
+                        <input type="range" id="ambientSlider2" min="0" max="1" step="0.01" value="0" class="w-full mt-2">
+                    </div>
+                </div>
             </div>
             <div class="md:col-span-2 lg:col-span-3 mt-6 md:mt-0 space-y-6">
-                <div class="blur-bg rounded-2xl p-6"><h1 class="font-quicksand text-3xl md:text-4xl text-center mb-6 tracking-wide">Now Playing</h1><div class="flex flex-col md:flex-row items-center gap-8">
-                    <div class="vinyl-container">
-                        <div id="vinylRecord" class="vinyl-record"></div>
-                        <div id="vinylLabel" class="vinyl-label"></div>
+                <div class="blur-bg rounded-2xl p-6">
+                    <h1 class="font-quicksand text-3xl md:text-4xl text-center mb-6 tracking-wide">Now Playing</h1>
+                    <div class="flex flex-col md:flex-row items-center gap-8">
+                        <div class="vinyl-container"><div id="vinylRecord" class="vinyl-record"></div><div id="vinylLabel" class="vinyl-label"></div></div>
+                        <div class="text-center md:text-left flex-grow w-full">
+                            <div class="flex items-center justify-center md:justify-start mb-2">
+                                <!-- --- NEW: Explicit Tag Container --- -->
+                                <span id="explicitTag" class="hidden mr-2 bg-gray-500/50 text-white text-xs font-bold px-2 py-0.5 rounded-md">E</span>
+                                <h2 id="trackName" class="font-semibold text-2xl md:text-3xl">No track playing</h2>
+                            </div>
+                            <p id="artistName" class="text-lg text-gray-600 mb-4">Select a track to start</p>
+                            <div class="mb-4"><div class="w-full bg-latte-tan/50 rounded-full h-2 mb-2"><div id="progressBar" class="h-2 rounded-full" style="width: 0%; background: #f0a6ca;"></div></div><div class="flex justify-between text-sm text-gray-600"><span id="currentTime">0:00</span><span id="totalTime">0:00</span></div></div>
+                            <div class="flex justify-center md:justify-start items-center space-x-6"><button id="shuffleBtn" class="text-2xl transition-colors" title="Shuffle"><i class="fas fa-random"></i></button><button id="prevBtn" class="text-2xl transition-colors" title="Previous"><i class="fas fa-step-backward"></i></button><button id="playBtn" class="w-12 h-12 rounded-full bg-dusty-pink flex items-center justify-center text-white text-xl" title="Play/Pause"><i class="fas fa-play"></i></button><button id="nextBtn" class="text-2xl transition-colors" title="Next"><i class="fas fa-step-forward"></i></button><button id="repeatBtn" class="text-2xl transition-colors" title="Repeat"><i class="fas fa-redo"></i></button></div>
+                            <div class="mt-6 flex items-center justify-between"><div class="flex items-center"><i class="fas fa-volume-down text-dusty-pink mr-3"></i><input type="range" id="volumeSlider" class="w-32" min="0" max="100" value="50"></div><button id="connectBtn" class="text-2xl transition-colors" title="Connect to a device"><i class="fas fa-computer"></i></button></div>
+                        </div>
                     </div>
-                    <div class="text-center md:text-left flex-grow w-full"><h2 id="trackName" class="font-semibold text-2xl md:text-3xl mb-2">No track playing</h2><p id="artistName" class="text-lg text-gray-600 mb-4">Select a track to start</p><div class="mb-4"><div class="w-full bg-latte-tan/50 rounded-full h-2 mb-2"><div id="progressBar" class="h-2 rounded-full" style="width: 0%; background: #f0a6ca;"></div></div><div class="flex justify-between text-sm text-gray-600"><span id="currentTime">0:00</span><span id="totalTime">0:00</span></div></div><div class="flex justify-center md:justify-start items-center space-x-6"><button id="shuffleBtn" class="text-2xl transition-colors" title="Shuffle"><i class="fas fa-random"></i></button><button id="prevBtn" class="text-2xl transition-colors" title="Previous"><i class="fas fa-step-backward"></i></button><button id="playBtn" class="w-12 h-12 rounded-full bg-dusty-pink flex items-center justify-center text-white text-xl" title="Play/Pause"><i class="fas fa-play"></i></button><button id="nextBtn" class="text-2xl transition-colors" title="Next"><i class="fas fa-step-forward"></i></button><button id="repeatBtn" class="text-2xl transition-colors" title="Repeat"><i class="fas fa-redo"></i></button></div><div class="mt-6 flex items-center justify-between"><div class="flex items-center"><i class="fas fa-volume-down text-dusty-pink mr-3"></i><input type="range" id="volumeSlider" class="w-32" min="0" max="100" value="50"></div><button id="connectBtn" class="text-2xl transition-colors" title="Connect to a device"><i class="fas fa-computer"></i></button></div></div></div></div>
+                </div>
                 <div class="blur-bg rounded-2xl p-6"><h2 class="font-handwritten text-2xl text-dusty-pink mb-4">Search Music</h2><div class="flex gap-4 mb-4"><input type="text" id="searchInput" placeholder="Search for songs..." class="flex-grow px-4 py-2 rounded-lg border-none bg-latte-tan/50 focus:outline-none focus:ring-2 focus:ring-dusty-pink"><button id="searchBtn" class="bg-dusty-pink text-white px-6 py-2 rounded-lg"><i class="fas fa-search"></i></button></div><div id="searchResults" class="space-y-2 max-h-64 overflow-y-auto"></div></div>
             </div>
         </div>
@@ -123,7 +156,6 @@
         const WEATHER_API_KEY = 'e4cf7e3f782e4d81b6b02628250907';
         const SCOPES = 'user-read-private user-read-email user-read-playback-state user-modify-playback-state user-read-currently-playing streaming playlist-read-private playlist-read-collaborative';
 
-        // --- ROBUST PKCE HELPER FUNCTIONS ---
         function generateRandomString(length) { const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'; let text = ''; for (let i = 0; i < length; i++) { text += possible.charAt(Math.floor(Math.random() * possible.length)); } return text; }
         async function generateCodeChallenge(codeVerifier) { const data = new TextEncoder().encode(codeVerifier); const digest = await window.crypto.subtle.digest('SHA-256', data); return btoa(String.fromCharCode.apply(null, new Uint8Array(digest))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); }
 
@@ -134,9 +166,7 @@
                 const params = new URLSearchParams(window.location.search);
                 const code = params.get('code');
                 if (code) {
-                    document.getElementById('loginContent').classList.add('hidden');
-                    document.getElementById('loadingContent').classList.remove('hidden');
-                    document.getElementById('loginScreen').classList.remove('hidden');
+                    document.getElementById('loginContent').classList.add('hidden'); document.getElementById('loadingContent').classList.remove('hidden'); document.getElementById('loginScreen').classList.remove('hidden');
                     const token = await this.getAccessToken(code);
                     if (token) { this.accessToken = token; sessionStorage.setItem('spotify_token', this.accessToken); window.history.replaceState({}, document.title, window.location.pathname); this.initializeApp(); }
                     else { alert('Could not authenticate with Spotify. Please try again.'); window.history.replaceState({}, document.title, window.location.pathname); this.showLoginScreen(); }
@@ -157,42 +187,42 @@
             async playItem(uri) { if (!this.deviceId) { alert('Player is not ready.'); return; } await this.makeSpotifyRequest(`/me/player/play?device_id=${this.deviceId}`, { method: 'PUT', body: JSON.stringify({ context_uri: uri }), headers: { 'Content-Type': 'application/json' } }); }
             async playTrack(trackUri) { if (!this.deviceId) { alert('Player is not ready.'); return; } await this.makeSpotifyRequest(`/me/player/play?device_id=${this.deviceId}`, { method: 'PUT', body: JSON.stringify({ uris: [trackUri] }), headers: { 'Content-Type': 'application/json' }}); }
             
-            async initializeWebPlayback() { await new Promise(resolve => { if (window.Spotify) resolve(); else { const script = document.createElement('script'); script.src = 'https://sdk.scdn.co/spotify-player.js'; script.async = true; document.head.appendChild(script); window.onSpotifyWebPlaybackSDKReady = resolve; } }); this.player = new Spotify.Player({ name: 'Lo-Fi Café Player', getOAuthToken: cb => cb(this.accessToken), volume: 0.5 }); this.player.addListener('ready', ({ device_id }) => { this.deviceId = device_id; }); this.player.addListener('player_state_changed', state => this.updatePlayerState(state)); await this.player.connect(); }
+            async initializeWebPlayback() { await new Promise(resolve => { if (window.Spotify) resolve(); else { const script = document.createElement('script'); script.src = 'https://sdk.scdn.co/spotify-player.js'; script.async = true; document.head.appendChild(script); window.onSpotifyWebPlaybackSDKReady = resolve; } }); this.player = new Spotify.Player({ name: 'Aura Player', getOAuthToken: cb => cb(this.accessToken), volume: 0.5 }); this.player.addListener('ready', ({ device_id }) => { this.deviceId = device_id; }); this.player.addListener('player_state_changed', state => this.updatePlayerState(state)); await this.player.connect(); }
 
             updatePlayerState(state) {
-                const vinylRecord = document.getElementById('vinylRecord'); const vinylLabel = document.getElementById('vinylLabel'); const vinylContainer = document.querySelector('.vinyl-container');
-                if (!state || !state.track_window.current_track) { document.getElementById('trackName').textContent = 'No track playing'; document.getElementById('artistName').textContent = 'Select a track to start'; vinylRecord.style.setProperty('--album-art-url', 'none'); vinylLabel.style.display = 'none'; vinylContainer.classList.remove('playing'); document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>'; return; }
+                const vinylRecord = document.getElementById('vinylRecord'); const vinylLabel = document.getElementById('vinylLabel'); const vinylContainer = document.querySelector('.vinyl-container'); const explicitTag = document.getElementById('explicitTag');
+                if (!state || !state.track_window.current_track) {
+                    document.title = "Aura"; // Reset title
+                    document.getElementById('trackName').textContent = 'No track playing'; document.getElementById('artistName').textContent = 'Select a track to start';
+                    vinylRecord.style.setProperty('--album-art-url', 'none'); vinylLabel.style.display = 'none'; vinylContainer.classList.remove('playing');
+                    document.getElementById('playBtn').innerHTML = '<i class="fas fa-play"></i>'; explicitTag.classList.add('hidden');
+                    return;
+                }
                 this.isPlaying = !state.paused; this.isShuffling = state.shuffle; this.repeatState = ['off', 'context', 'track'][state.repeat_mode]; const track = state.track_window.current_track; this.currentTrack = track;
+                
+                document.title = `${track.name} - Aura`; // Set title to song name
                 document.getElementById('trackName').textContent = track.name; document.getElementById('artistName').textContent = track.artists.map(a => a.name).join(', '); document.getElementById('totalTime').textContent = this.formatTime(track.duration_ms);
+                
+                if (track.explicit) { explicitTag.classList.remove('hidden'); } else { explicitTag.classList.add('hidden'); }
+
                 const albumArtUrl = track.album.images[0]?.url;
                 if (albumArtUrl) { vinylRecord.style.setProperty('--album-art-url', `url(${albumArtUrl})`); vinylLabel.style.display = 'block'; } else { vinylRecord.style.setProperty('--album-art-url', 'none'); vinylLabel.style.display = 'none'; }
                 vinylContainer.classList.toggle('playing', this.isPlaying);
+                
                 document.getElementById('playBtn').innerHTML = this.isPlaying ? '<i class="fas fa-pause"></i>' : '<i class="fas fa-play"></i>'; document.getElementById('shuffleBtn').classList.toggle('active', this.isShuffling); document.getElementById('repeatBtn').classList.toggle('active', this.repeatState !== 'off'); document.getElementById('repeatBtn').innerHTML = this.repeatState === 'track' ? '<i class="fas fa-retweet"></i>' : '<i class="fas fa-redo"></i>';
                 this.broadcastChannel.postMessage({ type: 'STATE_UPDATE', payload: { trackName: track.name, artistName: track.artists.map(a => a.name).join(', '), albumArt: albumArtUrl, isPlaying: this.isPlaying } });
             }
             
-            // --- NEW: SEARCH FUNCTIONALITY ---
             async search(query) {
-                const searchResultsContainer = document.getElementById('searchResults');
-                if (!query) { searchResultsContainer.innerHTML = ''; return; }
-                const data = await this.makeSpotifyRequest(`/search?q=${encodeURIComponent(query)}&type=track&limit=20`);
-                searchResultsContainer.innerHTML = ''; // Clear previous results
+                const searchResultsContainer = document.getElementById('searchResults'); if (!query) { searchResultsContainer.innerHTML = ''; return; }
+                const data = await this.makeSpotifyRequest(`/search?q=${encodeURIComponent(query)}&type=track&limit=20`); searchResultsContainer.innerHTML = '';
                 if (data && data.tracks && data.tracks.items.length > 0) {
                     data.tracks.items.forEach(track => {
-                        const el = document.createElement('div');
-                        el.className = 'search-result-item cursor-pointer p-2 rounded-lg flex items-center gap-4';
-                        el.innerHTML = `
-                            <img src="${track.album.images?.[2]?.url || track.album.images?.[0]?.url || ''}" class="w-12 h-12 rounded object-cover flex-shrink-0">
-                            <div class="overflow-hidden">
-                                <p class="font-medium truncate text-base">${track.name}</p>
-                                <p class="text-sm text-gray-600 truncate">${track.artists.map(a => a.name).join(', ')}</p>
-                            </div>`;
-                        el.addEventListener('click', () => this.playTrack(track.uri));
-                        searchResultsContainer.appendChild(el);
+                        const el = document.createElement('div'); el.className = 'search-result-item cursor-pointer p-2 rounded-lg flex items-center gap-4';
+                        el.innerHTML = `<img src="${track.album.images?.[2]?.url || ''}" class="w-12 h-12 rounded object-cover flex-shrink-0"><div class="overflow-hidden"><p class="font-medium truncate text-base">${track.name}</p><p class="text-sm text-gray-600 truncate">${track.artists.map(a => a.name).join(', ')}</p></div>`;
+                        el.addEventListener('click', () => this.playTrack(track.uri)); searchResultsContainer.appendChild(el);
                     });
-                } else {
-                    searchResultsContainer.innerHTML = `<p class="text-center text-gray-600">No results found.</p>`;
-                }
+                } else { searchResultsContainer.innerHTML = `<p class="text-center text-gray-600">No results found.</p>`; }
             }
 
             async previousTrack() { const state = await this.player.getCurrentState(); if (state && state.position > 5000) { this.player.seek(0); } else { this.player.previousTrack(); } }
@@ -202,13 +232,15 @@
             async nextTrack() { if (this.player) this.player.nextTrack(); }
             formatTime(ms) { const m = Math.floor(ms / 60000); const s = Math.floor((ms % 60000) / 1000).toString().padStart(2, '0'); return `${m}:${s}`; }
 
-            openMiniplayer() { const features = 'width=320,height=320,resizable=no,scrollbars=no,status=no'; this.miniplayerWindow = window.open('about:blank', 'miniplayer', features); const miniHTML = `<html><head><title>Lo-Fi Miniplayer</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>body{margin:0;font-family:'DM Sans',sans-serif;background-color:#000;color:white;text-align:center;overflow:hidden}.player{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:1.5rem 1rem}.bg-art{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:-1;filter:blur(15px) brightness(0.5);transform:scale(1.2)}#miniArt{width:150px;height:150px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.5)}#trackInfo{flex-grow:1;display:flex;flex-direction:column;justify-content:center}#trackName{font-weight:600;margin-top:1rem}#artistName{font-size:0.8rem;color:#ccc;margin-top:0.25rem}.controls{display:flex;align-items:center;gap:1.5rem}button{background:0;border:0;color:white;font-size:1.2rem;cursor:pointer;opacity:0.8;transition:all .2s ease}button:hover{opacity:1;transform:scale(1.1)}</style></head><body><div class="player"><div id="bg-art-container"><img id="bgArt" src=""></div><img id="miniArt" src=""><div id="trackInfo"><div id="trackName">No track</div><p id="artistName">...</p></div><div class="controls"><button id="miniPrev"><i class="fas fa-step-backward"></i></button><button id="miniPlay" style="font-size:1.8rem;"><i class="fas fa-play"></i></button><button id="miniNext"><i class="fas fa-step-forward"></i></button></div></div><script>const c=new BroadcastChannel('lofi_cafe_channel');c.onmessage=e=>{if(e.data.type==='STATE_UPDATE'){const{trackName,artistName,albumArt,isPlaying}=e.data.payload;document.getElementById('trackName').textContent=trackName;document.getElementById('artistName').textContent=artistName;document.getElementById('miniArt').src=albumArt||'';document.getElementById('bgArt').src=albumArt||'';document.getElementById('miniPlay').innerHTML=isPlaying?'<i class="fas fa-pause"></i>':'<i class="fas fa-play"></i>'}};document.getElementById('miniPlay').onclick=()=>c.postMessage({type:'ACTION',payload:'togglePlay'});document.getElementById('miniNext').onclick=()=>c.postMessage({type:'ACTION',payload:'nextTrack'});document.getElementById('miniPrev').onclick=()=>c.postMessage({type:'ACTION',payload:'previousTrack'});c.postMessage({type:'REQUEST_INIT_STATE'});<\/script></body></html>`; this.miniplayerWindow.document.write(miniHTML); this.miniplayerWindow.document.close(); }
+            openMiniplayer() { const features = 'width=320,height=320,resizable=no,scrollbars=no,status=no'; this.miniplayerWindow = window.open('about:blank', 'miniplayer', features); const miniHTML = `<html><head><title>Aura Miniplayer</title><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"><style>body{margin:0;font-family:'DM Sans',sans-serif;background-color:#000;color:white;text-align:center;overflow:hidden}.player{width:100vw;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:1.5rem 1rem}.bg-art{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0;z-index:-1;filter:blur(15px) brightness(0.5);transform:scale(1.2)}#miniArt{width:150px;height:150px;border-radius:8px;box-shadow:0 4px 15px rgba(0,0,0,0.5)}#trackInfo{flex-grow:1;display:flex;flex-direction:column;justify-content:center}#trackName{font-weight:600;margin-top:1rem}#artistName{font-size:0.8rem;color:#ccc;margin-top:0.25rem}.controls{display:flex;align-items:center;gap:1.5rem}button{background:0;border:0;color:white;font-size:1.2rem;cursor:pointer;opacity:0.8;transition:all .2s ease}button:hover{opacity:1;transform:scale(1.1)}</style></head><body><div class="player"><div id="bg-art-container"><img id="bgArt" src=""></div><img id="miniArt" src=""><div id="trackInfo"><div id="trackName">No track</div><p id="artistName">...</p></div><div class="controls"><button id="miniPrev"><i class="fas fa-step-backward"></i></button><button id="miniPlay" style="font-size:1.8rem;"><i class="fas fa-play"></i></button><button id="miniNext"><i class="fas fa-step-forward"></i></button></div></div><script>const c=new BroadcastChannel('lofi_cafe_channel');c.onmessage=e=>{if(e.data.type==='STATE_UPDATE'){const{trackName,artistName,albumArt,isPlaying}=e.data.payload;document.getElementById('trackName').textContent=trackName;document.getElementById('artistName').textContent=artistName;document.getElementById('miniArt').src=albumArt||'';document.getElementById('bgArt').src=albumArt||'';document.getElementById('miniPlay').innerHTML=isPlaying?'<i class="fas fa-pause"></i>':'<i class="fas fa-play"></i>'}};document.getElementById('miniPlay').onclick=()=>c.postMessage({type:'ACTION',payload:'togglePlay'});document.getElementById('miniNext').onclick=()=>c.postMessage({type:'ACTION',payload:'nextTrack'});document.getElementById('miniPrev').onclick=()=>c.postMessage({type:'ACTION',payload:'previousTrack'});c.postMessage({type:'REQUEST_INIT_STATE'});<\/script></body></html>`; this.miniplayerWindow.document.write(miniHTML); this.miniplayerWindow.document.close(); }
             
             setupEventListeners() {
                 document.getElementById('playBtn').addEventListener('click', () => this.togglePlay()); document.getElementById('prevBtn').addEventListener('click', () => this.previousTrack()); document.getElementById('nextBtn').addEventListener('click', () => this.nextTrack()); document.getElementById('shuffleBtn').addEventListener('click', () => this.toggleShuffle()); document.getElementById('repeatBtn').addEventListener('click', () => this.toggleRepeat()); document.getElementById('volumeSlider').addEventListener('input', (e) => this.player.setVolume(e.target.value / 100));
                 const searchAction = () => { const query = document.getElementById('searchInput').value; this.search(query); };
                 document.getElementById('searchBtn').addEventListener('click', searchAction); document.getElementById('searchInput').addEventListener('keypress', (e) => { if (e.key === 'Enter') searchAction(); });
                 document.getElementById('logoutBtn').addEventListener('click', () => this.logout()); document.getElementById('miniPlayerBtn').addEventListener('click', () => this.openMiniplayer());
+                // --- NEW: Event listener for retro toggle ---
+                document.getElementById('retroToggleBtn').addEventListener('click', () => document.body.classList.toggle('retro-mode'));
                 this.broadcastChannel.onmessage = (event) => { if (event.data.type === 'ACTION') this[event.data.payload](); if (event.data.type === 'REQUEST_INIT_STATE' && this.currentTrack) { this.updatePlayerState({ track_window: { current_track: this.currentTrack }, paused: !this.isPlaying, shuffle: this.isShuffling, repeat_mode: ['off', 'context', 'track'].indexOf(this.repeatState) }); }};
             }
             startProgressUpdater() { setInterval(async () => { if (this.isPlaying && this.player) { const state = await this.player.getCurrentState(); if (state) { document.getElementById('currentTime').textContent = this.formatTime(state.position); document.getElementById('progressBar').style.width = `${(state.position / state.duration) * 100}%`; } } }, 1000); }
@@ -218,7 +250,18 @@
         document.addEventListener('DOMContentLoaded', function() {
             const spotifyPlayer = new SpotifyPlayer();
             document.getElementById('loginBtn').addEventListener('click', () => spotifyPlayer.login());
-            const ambientSounds = { none: { name: 'None', file: '' }, rain: { name: 'Gentle Rain', file: './assets/rain.mp3' }, cafe: { name: 'Coffee Shop', file: './assets/cafe.mp3' }, fire: { name: 'Inazuma', file: './assets/inazuma.mp3' } };
+            
+            // --- UPDATED: New ambiance mixes added ---
+            const ambientSounds = { 
+                none: { name: 'None', file: '' }, 
+                rain: { name: 'Gentle Rain', file: './assets/rain.mp3' }, 
+                cafe: { name: 'Coffee Shop', file: './assets/cafe.mp3' }, 
+                fire: { name: 'Inazuma', file: './assets/inazuma.mp3' },
+                carti: { name: 'Carti Beats (Curated by Kahlio)', file: './assets/carti.mp3' },
+                sleep: { name: 'Sleep Mix (Curated by Kahlio)', file: './assets/sleep.mp3' },
+                minecraft: { name: 'Minecraft OST (Curated by Kahlio)', file: './assets/minecraft.mp3' }
+            };
+
             const select1 = document.getElementById('ambientSelect1'); const slider1 = document.getElementById('ambientSlider1'); const audio1 = document.getElementById('ambientAudio1');
             const select2 = document.getElementById('ambientSelect2'); const slider2 = document.getElementById('ambientSlider2'); const audio2 = document.getElementById('ambientAudio2');
             function populateSelect(s) { for (const k in ambientSounds) { const o = document.createElement('option'); o.value = k; o.textContent = ambientSounds[k].name; s.appendChild(o); } } populateSelect(select1); populateSelect(select2);
